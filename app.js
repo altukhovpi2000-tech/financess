@@ -1,8 +1,11 @@
 (function(){
-  var VERSION='0.5.2';
+  var VERSION='0.5.3';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
+
+  var MONTHS=['января','февраля','марта','апреля','мая','июня',
+              'июля','августа','сентября','октября','ноября','декабря'];
 
   function el(id){return document.getElementById(id);}
 
@@ -13,6 +16,13 @@
   var today=new Date();
   function localDate(d){
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  // «2026-11-21» -> «21 ноября 2026»
+  function humanDate(s){
+    var p=String(s).split('-');
+    if(p.length!==3){return String(s);}
+    return Number(p[2])+' '+MONTHS[Number(p[1])-1]+' '+p[0];
   }
 
   el('date').value=localDate(today);
@@ -48,6 +58,14 @@
     return 'expense';
   }
 
+  function normDateStr(v){
+    var s=String(v);
+    if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+    var m=s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+    if(m)return m[3]+'-'+m[2]+'-'+m[1];
+    return s.slice(0,10);
+  }
+
   function sendToSheet(r){
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
     var payload={token:SECRET,id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount,note:r.note||''};
@@ -70,9 +88,10 @@
       .then(function(data){
         if(!data.ok){throw new Error(data.error||'bad');}
         var fresh=data.records.map(function(r){
-          return {id:Number(r.id)||Date.now(),date:String(r.date),kind:kindCode(r.kind),category:String(r.category),amount:Number(r.amount),note:r.note||''};
+          return {id:Number(r.id)||Date.now(),date:normDateStr(r.date),kind:kindCode(String(r.kind).trim().toLowerCase()),category:String(r.category),amount:Number(r.amount),note:r.note||''};
+        }).filter(function(r){
+          return /^\d{4}-\d{2}-\d{2}$/.test(r.date)&&isFinite(r.amount)&&r.amount>0;
         });
-        // простая защита от дублей: оставляем только записи с новыми id
         var seen={};
         fresh=fresh.filter(function(r){
           if(seen[r.id]){return false;}
@@ -126,7 +145,7 @@
       var sign=r.kind==='expense'?'−':'+';
       html+='<div class="entry"><div class="row">'
         +'<div style="min-width:0"><div class="entry-title">'+safe(r.category)+(r.note?' — '+safe(r.note):'')+'</div>'
-        +'<div class="entry-meta">'+safe(r.date)+' · '+label+'</div></div>'
+        +'<div class="entry-meta">'+safe(humanDate(r.date))+' · '+label+'</div></div>'
         +'<div class="row"><span class="amount">'+sign+money(r.amount)+'</span>'
         +'<button class="btn-danger" type="button" data-del="'+r.id+'">Удалить</button></div>'
         +'</div></div>';
@@ -213,7 +232,7 @@
       var data=JSON.parse(text);
       if(!Array.isArray(data)){throw new Error('bad');}
       records=data.map(function(r){
-        return {id:Number(r.id)||Date.now()+Math.random(),date:String(r.date),kind:r.kind,category:r.category,amount:Number(r.amount),note:r.note||''};
+        return {id:Number(r.id)||Date.now()+Math.random(),date:normDateStr(r.date),kind:r.kind,category:r.category,amount:Number(r.amount),note:r.note||''};
       });
       persist();
       render();
@@ -225,6 +244,5 @@
   });
 
   render();
-  // автозагрузка из таблицы 
   loadFromSheet(true);
 })();
