@@ -1,5 +1,5 @@
 (function(){
-  var VERSION='0.5.7';
+  var VERSION='0.5.8';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
@@ -147,10 +147,18 @@
     }
     var income=sum('income'),spent=sum('expense'),saving=sum('saving');
 
-    el('income').textContent=money(income);
+        el('income').textContent=money(income);
     el('spent').textContent=money(spent);
     el('savings').textContent=money(saving);
-    el('balance').textContent=money(income-spent-saving);
+    var balance=income-spent-saving;
+    el('balance').textContent=money(balance);
+
+    var card=el('balance').closest('.stat-card');
+    card.classList.remove('bal-red','bal-yellow','bal-green','bal-gold');
+    if(balance<=-10000){card.classList.add('bal-red');}
+    else if(balance<5000){card.classList.add('bal-yellow');}
+    else if(balance<=10000){card.classList.add('bal-green');}
+    else{card.classList.add('bal-gold');}
 
     var cats={};
     list.filter(function(r){return r.kind==='expense';}).forEach(function(r){
