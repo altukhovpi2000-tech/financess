@@ -1,5 +1,5 @@
 (function(){
-  var VERSION='0.5.4';
+  var VERSION='0.5.5';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
