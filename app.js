@@ -1,5 +1,5 @@
 (function(){
-  var VERSION='0.5.8';
+  var VERSION='0.5.9';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
@@ -28,6 +28,7 @@
   el('date').value=localDate(today);
   el('month').value=localDate(today).slice(0,7);
 
+  var editingId=null;
   var records=[];
   try{
     var stored=localStorage.getItem(KEY);
@@ -102,6 +103,12 @@
   function sendDelete(r){
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
     var payload={token:SECRET,action:'delete',id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount};
+    fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(function(){});
+  }
+
+    function sendUpdate(r){
+    if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
+    var payload={token:SECRET,action:'update',id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount,note:r.note||''};
     fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(function(){});
   }
 
@@ -184,6 +191,7 @@
         +'<div style="min-width:0"><div class="entry-title">'+safe(r.category)+(r.note?' — '+safe(r.note):'')+'</div>'
         +'<div class="entry-meta">'+safe(humanDate(r.date))+' · '+label+'</div></div>'
         +'<div class="row"><span class="amount">'+sign+money(r.amount)+'</span>'
+        +'<button class="btn-edit" type="button" data-edit="'+r.id+'">✎</button>'
         +'<button class="btn-danger" type="button" data-del="'+r.id+'">Удалить</button></div>'
         +'</div></div>';
     });
@@ -217,19 +225,82 @@
     el('note').value='';
   });
 
-  el('entries').addEventListener('click',function(e){
-    var b=e.target.closest('[data-del]');
+    el('entries').addEventListener('click',function(e){
+    var d=e.target.closest('[data-del]');
+    if(d){
+      var id=Number(d.getAttribute('data-del'));
+      var idx=-1;
+      for(var i=0;i<records.length;i++){if(Number(records[i].id)===id){idx=i;break;}}
+      if(idx<0){return;}
+      sendDelete(records[idx]);
+      records.splice(idx,1);
+      persist();
+      render();
+      el('message').textContent='Запись удалена на устройстве и в таблице.';
+      return;
+    }
+    var b=e.target.closest('[data-edit]');
     if(!b){return;}
-    var id=Number(b.getAttribute('data-del'));
-    var idx=-1;
-    for(var i=0;i<records.length;i++){if(Number(records[i].id)===id){idx=i;break;}}
-    if(idx<0){return;}
-    sendDelete(records[idx]);
-    records.splice(idx,1);
-    persist();
-    render();
-    el('message').textContent='Запись удалена на устройстве и в таблице.';
+    var rec=null;
+    for(var j=0;j<records.length;j++){if(Number(records[j].id)===Number(b.getAttribute('data-edit'))){rec=records[j];break;}}
+    if(!rec){return;}
+    editingId=rec.id;
+    el('editId').value=rec.id;
+    el('editDate').value=rec.date;
+    el('editKind').value=rec.kind;
+    fillEditCategories(rec.kind,rec.category);
+    el('editAmount').value=rec.amount;
+    el('editNote').value=rec.note||'';
+    el('editPanel').style.display='block';
+    el('editPanel').scrollIntoView({behavior:'smooth',block:'start'});
   });
+
+    function fillEditCategories(kind,selected){
+    var sel=el('editCategory');
+    if(kind==='saving'){
+      sel.innerHTML='<option value="—">—</option>';
+      sel.disabled=true;
+    }else{
+      var list=(kind==='income')?CATS_INCOME:CATS_EXPENSE;
+      sel.innerHTML=list.map(function(c){return '<option value="'+c+'">'+safe(c)+'</option>';}).join('');
+      sel.disabled=false;
+      if(selected&&selected!=='—'&&list.indexOf(selected)<0){
+        sel.insertAdjacentHTML('afterbegin','<option value="'+safe(selected)+'">'+safe(selected)+'</option>');
+      }
+    }
+    if(selected){sel.value=selected;}
+  }
+
+  el('editKind').addEventListener('change',function(){fillEditCategories(el('editKind').value,'');});
+
+  el('editForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var idx=-1;
+    for(var i=0;i<records.length;i++){if(records[i].id===editingId){idx=i;break;}}
+    if(idx<0){el('editPanel').style.display='none';return;}
+    var amount=Number(el('editAmount').value);
+    if(!Number.isFinite(amount)||amount<=0){
+      el('message').textContent='Введи сумму больше нуля.';
+      return;
+    }
+    var kind=el('editKind').value;
+    var category=el('editCategory').value;
+    if(kind==='saving'){category='—';}
+    var rec=records[idx];
+    rec.date=el('editDate').value;
+    rec.kind=kind;
+    rec.category=category;
+    rec.amount=amount;
+    rec.note=el('editNote').value.trim();
+    persist();
+    el('month').value=rec.date.slice(0,7);
+    render();
+    sendUpdate(rec);
+    el('editPanel').style.display='none';
+    el('message').textContent='Запись обновлена на устройстве и в таблице.';
+  });
+
+  el('editCancel').addEventListener('click',function(){el('editPanel').style.display='none';});
 
   el('month').addEventListener('change',render);
 
