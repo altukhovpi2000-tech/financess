@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f5f5f2">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://script.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+<title>Мои расходы</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#20231f;background:#f5f5f2}
+*{box-sizing:border-box}
+body{margin:0;padding:16px 14px 40px;max-width:720px;margin-inline:auto;overflow-x:hidden}
+h1{font-size:24px;margin:8px 0 4px}
+.sub{color:#686d66;margin:0 0 18px;font-size:14px}
+.panel{background:#fff;border:1px solid #e5e7e1;border-radius:16px;padding:18px;margin-bottom:16px;overflow:hidden}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stat-card{background:#f4f5f1;border-radius:12px;padding:12px}
+.stat-label{display:block;font-size:12px;color:#686d66;margin-bottom:4px}
+.stat-value{display:block;font-size:20px;font-weight:700}
+label{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
+input,select{width:100%;max-width:100%;min-width:0;min-height:48px;padding:10px 14px;border:1px solid #d8dcd4;border-radius:12px;background:#fff;color:#20231f;font-size:16px;font-family:inherit;outline:none}
+input[type="date"],input[type="month"]{-webkit-appearance:none;appearance:none}
+input:focus,select:focus{border-color:#263c31}
+button{cursor:pointer;border:0;border-radius:12px;font-weight:600;font-size:16px;font-family:inherit;padding:13px 16px}
+.btn-primary{background:#263c31;color:#fff;width:100%;margin-top:16px}
+.btn-secondary{background:#eef0eb;color:#263329;flex:1}
+.btn-danger{background:#fff0ee;color:#9d3027;padding:8px 12px;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.row>*{min-width:0}
+.muted{color:#70766e;font-size:13px}
+.entry{padding:14px 0;border-top:1px solid #eceee9}
+.entry:first-child{border-top:0}
+.entry-title{font-weight:600;overflow-wrap:anywhere}
+.entry-meta{font-size:12px;color:#737970;margin-top:4px}
+.amount{font-weight:700;white-space:nowrap}
+.empty{padding:20px 0;color:#777;font-size:14px;text-align:center}
+.actions{display:flex;gap:10px;margin-top:14px}
+#message{min-height:20px;color:#356345;font-size:14px;margin-top:10px}
+.version{color:#a8aca4;font-size:11px;text-align:center;padding-bottom:20px}
+</style>
+</head>
+<body>
+<h1>Мои расходы</h1>
+<p class="sub">Записывай поступления и траты — они сохраняются на устройстве и уходят в Google Таблицу.</p>
+
+<section class="panel">
+  <div class="row"><strong>Сводка за месяц</strong><input id="month" type="month" style="max-width:180px;flex-shrink:0"></div>
+  <div class="stats-grid">
+    <div class="stat-card"><span class="stat-label">Доходы</span><span class="stat-value" id="income">0 ₽</span></div>
+    <div class="stat-card"><span class="stat-label">Расходы</span><span class="stat-value" id="spent">0 ₽</span></div>
+    <div class="stat-card"><span class="stat-label">В подушку</span><span class="stat-value" id="savings">0 ₽</span></div>
+    <div class="stat-card"><span class="stat-label">Остаток</span><span class="stat-value" id="balance">0 ₽</span></div>
+  </div>
+  <p class="muted" id="categoryTotals" style="margin:14px 0 0"></p>
+</section>
+
+<section class="panel">
+  <strong style="display:block;margin-bottom:6px">Добавить запись</strong>
+  <form id="form">
+    <label for="date">Дата</label>
+    <input id="date" type="date" required>
+
+    <label for="kind">Тип записи</label>
+    <select id="kind">
+      <option value="expense">Расход</option>
+      <option value="income">Доход</option>
+      <option value="saving">В подушку безопасности</option>
+    </select>
+
+    <label for="category">Категория</label>
+    <select id="category">
+      <option>Регулярные траты</option>
+      <option>Еда и вода</option>
+      <option>Бытовые траты</option>
+      <option>Транспорт</option>
+      <option>Здоровье</option>
+      <option>Развлечения</option>
+      <option>Подписки</option>
+      <option>Прочее</option>
+      <option>Зарплата</option>
+      <option>Другое поступление</option>
+    </select>
+
+    <label for="amount">Сумма, ₽</label>
+    <input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Например, 450" required>
+
+    <label for="note">Комментарий (необязательно)</label>
+    <input id="note" type="text" maxlength="90" placeholder="Например, продукты на неделю">
+
+    <button class="btn-primary" type="submit">Сохранить запись</button>
+    <div id="message" aria-live="polite"></div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="row"><strong>Записи за выбранный месяц</strong><span class="muted" id="count">0 записей</span></div>
+  <div id="entries"><div class="empty">Пока записей нет.</div></div>
+  <div class="actions">
+    <button class="btn-secondary" type="button" id="export">Скачать CSV</button>
+    <button class="btn-secondary" type="button" id="backup">Резервная копия</button>
+  </div>
+  <label for="restore">Восстановить из резервной копии</label>
+  <input id="restore" type="file" accept="application/json,.json">
+  <p class="muted">Записи хранятся на устройстве и дублируются в Google Таблицу «Финансы». Отчёт строится скриптом make_expenses.py.</p>
+</section>
+
+<p class="version">версия 12 — GitHub Pages</p>
+
+<script>
+(function(){
+  var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
+  var SECRET='koshka-2026-tl48xq91';
+  var KEY='my-expenses-v1';
+
+  function el(id){return document.getElementById(id);}
+
+  function money(n){
+    return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(n)+' ₽';
+  }
+
+  var today=new Date();
+  function localDate(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  el('date').value=localDate(today);
+  el('month').value=localDate(today).slice(0,7);
+
+  var records=[];
+  try{
+    var stored=localStorage.getItem(KEY);
+    if(stored){records=JSON.parse(stored);}
+    if(!Array.isArray(records)){records=[];}
+  }catch(e){records=[];}
+
+  function persist(){
+    try{localStorage.setItem(KEY,JSON.stringify(records));}
+    catch(e){el('message').textContent='Не удалось сохранить локально. Скачай резервную копию.';}
+  }
+
+  function safe(s){
+    return String(s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function kindWord(kind){
+    if(kind==='income')return 'доход';
+    if(kind==='saving')return 'подушка';
+    return 'расход';
+  }
+
+  function sendToSheet(r){
+    if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
+    var payload={token:SECRET,id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount,note:r.note||''};
+    fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)})
+      .then(function(){el('message').textContent='Запись сохранена и отправлена в Google Таблицу.';})
+      .catch(function(){el('message').textContent='Сохранено на устройстве, но в таблицу не ушло — проверь интернет.';});
+  }
+
+  function sendDelete(r){
+    if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
+    var payload={token:SECRET,action:'delete',id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount};
+    fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(function(){});
+  }
+
+  function render(){
+    var m=el('month').value;
+    var list=records.filter(function(r){return r.date.slice(0,7)===m;});
+    list.sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+
+    function sum(type){
+      return list.filter(function(r){return r.kind===type;}).reduce(function(a,r){return a+r.amount;},0);
+    }
+    var income=sum('income'),spent=sum('expense'),saving=sum('saving');
+
+    el('income').textContent=money(income);
+    el('spent').textContent=money(spent);
+    el('savings').textContent=money(saving);
+    el('balance').textContent=money(income-spent-saving);
+
+    var cats={};
+    list.filter(function(r){return r.kind==='expense';}).forEach(function(r){
+      if(!cats[r.category]){cats[r.category]=0;}
+      cats[r.category]+=r.amount;
+    });
+    var parts=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];}).map(function(k){
+      return safe(k)+': <b>'+money(cats[k])+'</b>';
+    });
+    el('categoryTotals').innerHTML=parts.length?parts.join(' · '):'Расходов по категориям пока нет.';
+
+    el('count').textContent=list.length+' записей';
+
+    if(!list.length){
+      el('entries').innerHTML='<div class="empty">За этот месяц записей пока нет.</div>';
+      return;
+    }
+    var html='';
+    list.forEach(function(r){
+      var label=r.kind==='income'?'Доход':(r.kind==='saving'?'Подушка безопасности':'Расход');
+      var sign=r.kind==='expense'?'−':'+';
+      html+='<div class="entry"><div class="row">'
+        +'<div style="min-width:0"><div class="entry-title">'+safe(r.category)+(r.note?' — '+safe(r.note):'')+'</div>'
+        +'<div class="entry-meta">'+safe(r.date)+' · '+label+'</div></div>'
+        +'<div class="row"><span class="amount">'+sign+money(r.amount)+'</span>'
+        +'<button class="btn-danger" type="button" data-del="'+r.id+'">Удалить</button></div>'
+        +'</div></div>';
+    });
+    el('entries').innerHTML=html;
+  }
+
+  el('form').addEventListener('submit',function(e){
+    e.preventDefault();
+    var amount=Number(el('amount').value);
+    if(!Number.isFinite(amount)||amount<=0){
+      el('message').textContent='Введи сумму больше нуля.';
+      return;
+    }
+    var kind=el('kind').value;
+    var category=el('category').value;
+    if(kind==='income'&&category!=='Зарплата'&&category!=='Другое поступление'){category='Другое поступление';}
+    if(kind==='saving'){category='Подушка безопасности';}
+    var rec={
+      id:Date.now()+Math.floor(Math.random()*1000),
+      date:el('date').value,
+      kind:kind,
+      category:category,
+      amount:amount,
+      note:el('note').value.trim()
+    };
+    records.push(rec);
+    persist();
+    el('month').value=rec.date.slice(0,7);
+    render();
+    sendToSheet(rec);
+    if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){
+      el('message').textContent='Запись сохранена на устройстве (отправка в таблицу не настроена).';
+    }
+    el('amount').value='';
+    el('note').value='';
+  });
+
+  el('entries').addEventListener('click',function(e){
+    var b=e.target.closest('[data-del]');
+    if(!b){return;}
+    var id=Number(b.getAttribute('data-del'));
+    var idx=-1;
+    for(var i=0;i<records.length;i++){if(Number(records[i].id)===id){idx=i;break;}}
+    if(idx<0){return;}
+    sendDelete(records[idx]);
+    records.splice(idx,1);
+    persist();
+    render();
+    el('message').textContent='Запись удалена на устройстве и в таблице.';
+  });
+
+  el('month').addEventListener('change',render);
+
+  function download(name,content,type){
+    var blob=new Blob([content],{type:type});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=name;
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+
+  el('backup').addEventListener('click',function(){
+    download('moi-rashody-backup.json',JSON.stringify(records,null,2),'application/json');
+  });
+
+  el('export').addEventListener('click',function(){
+    var m=el('month').value;
+    var rows=[['Дата','Тип','Категория','Сумма','Комментарий']];
+    records.filter(function(r){return r.date.slice(0,7)===m;}).forEach(function(r){
+      rows.push([r.date,r.kind,r.category,r.amount,r.note||'']);
+    });
+    var csv='﻿'+rows.map(function(row){
+      return row.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');
+    }).join('\n');
+    download('rashody-'+m+'.csv',csv,'text/csv;charset=utf-8');
+  });
+
+  el('restore').addEventListener('change',function(e){
+    var f=e.target.files[0];
+    if(!f){return;}
+    f.text().then(function(text){
+      var data=JSON.parse(text);
+      if(!Array.isArray(data)){throw new Error('bad');}
+      records=data.map(function(r){
+        return {id:Number(r.id)||Date.now()+Math.random(),date:String(r.date),kind:r.kind,category:r.category,amount:Number(r.amount),note:r.note||''};
+      });
+      persist();
+      render();
+      el('message').textContent='Резервная копия восстановлена.';
+    }).catch(function(){
+      el('message').textContent='Не получилось прочитать файл резервной копии.';
+    });
+    e.target.value='';
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
