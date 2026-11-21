@@ -41,6 +41,12 @@
     return 'расход';
   }
 
+  function kindCode(kind){
+    if(kind==='доход')return 'income';
+    if(kind==='подушка')return 'saving';
+    return 'expense';
+  }
+
   function sendToSheet(r){
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
     var payload={token:SECRET,id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount,note:r.note||''};
@@ -53,6 +59,25 @@
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
     var payload={token:SECRET,action:'delete',id:r.id,date:r.date,kind:kindWord(r.kind),category:r.category,amount:r.amount};
     fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(function(){});
+  }
+
+  function loadFromSheet(){
+    if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
+    el('message').textContent='Загружаю из таблицы…';
+    fetch(ENDPOINT+'?token='+encodeURIComponent(SECRET),{method:'GET',mode:'cors'})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(!data.ok){throw new Error(data.error||'bad');}
+        records=data.records.map(function(r){
+          return {id:Number(r.id)||Date.now(),date:String(r.date),kind:kindCode(r.kind),category:String(r.category),amount:Number(r.amount),note:r.note||''};
+        });
+        persist();
+        render();
+        el('message').textContent='Загружено из таблицы: '+records.length+' записей.';
+      })
+      .catch(function(){
+        el('message').textContent='Не удалось загрузить из таблицы. Проверь интернет и попробуй ещё раз.';
+      });
   }
 
   function render(){
@@ -78,7 +103,7 @@
     var parts=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];}).map(function(k){
       return safe(k)+': <b>'+money(cats[k])+'</b>';
     });
-    el('categoryTotals').innerHTML=parts.length?parts.join(' · '):'Расходов по категориям пока нет.';
+    el('categoryTotals').innerHTML=parts.length?parts.join(' · '):'Расходов по категорям пока нет.';
 
     el('count').textContent=list.length+' записей';
 
@@ -146,6 +171,8 @@
   });
 
   el('month').addEventListener('change',render);
+
+  el('sync').addEventListener('click',loadFromSheet);
 
   function download(name,content,type){
     var blob=new Blob([content],{type:type});
