@@ -1,5 +1,5 @@
 (function(){
-  var VERSION='0.5.6';
+  var VERSION='0.5.7';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
@@ -57,6 +57,24 @@
     if(kind==='подушка')return 'saving';
     return 'expense';
   }
+    var CATS_EXPENSE=['Еда и вода','Регулярные траты','Бытовые траты','Транспорт','Здоровье','Развлечения','Подписки','Прочее'];
+  var CATS_INCOME=['Зарплата','Другое поступление'];
+
+  function updateCategories(){
+    var kind=el('kind').value;
+    var sel=el('category');
+    if(kind==='saving'){
+      sel.innerHTML='<option value="—">—</option>';
+      sel.disabled=true;
+      return;
+    }
+    var list=(kind==='income')?CATS_INCOME:CATS_EXPENSE;
+    sel.innerHTML=list.map(function(c){return '<option value="'+c+'">'+safe(c)+'</option>';}).join('');
+    sel.disabled=false;
+  }
+
+  el('kind').addEventListener('change',updateCategories);
+
 
     var MONTHS_EN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
   function normDateStr(v){
@@ -171,10 +189,9 @@
       el('message').textContent='Введи сумму больше нуля.';
       return;
     }
-    var kind=el('kind').value;
+        var kind=el('kind').value;
     var category=el('category').value;
-    if(kind==='income'&&category!=='Зарплата'&&category!=='Другое поступление'){category='Другое поступление';}
-    if(kind==='saving'){category='Подушка безопасности';}
+    if(kind==='saving'){category='—';}
     var rec={
       id:Date.now()+Math.floor(Math.random()*1000),
       date:el('date').value,
@@ -254,6 +271,7 @@
     e.target.value='';
   });
 
+    updateCategories();
   render();
   loadFromSheet(true);
 })();
