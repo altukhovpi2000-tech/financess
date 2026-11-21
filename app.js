@@ -1,6 +1,6 @@
 (function(){
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
-  var SECRET='ТВОЙ_НОВЫЙ_ТОКЕН';
+  var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
 
   function el(id){return document.getElementById(id);}
