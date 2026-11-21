@@ -80,13 +80,14 @@
     fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(function(){});
   }
 
-  function loadFromSheet(silent){
+    function loadFromSheet(silent){
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
     if(!silent){el('message').textContent='Загружаю из таблицы…';}
     fetch(ENDPOINT+'?token='+encodeURIComponent(SECRET),{method:'GET',mode:'cors'})
       .then(function(r){return r.json();})
       .then(function(data){
         if(!data.ok){throw new Error(data.error||'bad');}
+        var raw=data.records.length;
         var fresh=data.records.map(function(r){
           return {id:Number(r.id)||Date.now(),date:normDateStr(r.date),kind:kindCode(String(r.kind).trim().toLowerCase()),category:String(r.category),amount:Number(r.amount),note:r.note||''};
         }).filter(function(r){
@@ -101,7 +102,10 @@
         records=fresh;
         persist();
         render();
-        el('message').textContent='Загружено из таблицы: '+records.length+' записей (версия '+VERSION+').';
+        var sample=raw>0
+          ? ' Пример: ['+String(data.records[0].date)+' | '+String(data.records[0].kind)+' | '+String(data.records[0].category)+' | '+String(data.records[0].amount)+']'
+          : '';
+        el('message').textContent='Диагностика: пришло '+raw+', прошло фильтр '+records.length+' (версия '+VERSION+').'+sample;
       })
       .catch(function(){
         el('message').textContent=silent?'':'Не удалось загрузить из таблицы. Проверь интернет и попробуй ещё раз.';
