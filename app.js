@@ -1,5 +1,5 @@
 (function(){
-  var VERSION='0.5.5';
+  var VERSION='0.5.6';
   var ENDPOINT='https://script.google.com/macros/s/AKfycbyPS6WBIB-y7VlY_MQYNRMFkTU2IOQpPYtxNJ3nhrApTXlqcmtFOKhWNfhw2AkSUkfDfw/exec';
   var SECRET='koshka-2026-tl48xq91';
   var KEY='my-expenses-v1';
@@ -58,13 +58,20 @@
     return 'expense';
   }
 
+    var MONTHS_EN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
   function normDateStr(v){
     var s=String(v);
     if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
     var m=s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
     if(m)return m[3]+'-'+m[2]+'-'+m[1];
+    m=s.match(/[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})(?:\s+(\d{4}))?/);
+    if(m){
+      var mo=MONTHS_EN[m[1].toLowerCase()];
+      if(mo)return (m[2]||String(new Date().getFullYear()))+'-'+String(mo).padStart(2,'0')+'-'+String(Number(m[3])).padStart(2,'0');
+    }
     return s.slice(0,10);
   }
+
 
   function sendToSheet(r){
     if(!ENDPOINT||ENDPOINT.indexOf('http')!==0){return;}
