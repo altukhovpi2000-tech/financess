@@ -33,6 +33,7 @@ button{cursor:pointer;border:0;border-radius:12px;font-weight:600;font-size:16px
 .btn-primary{background:#263c31;color:#fff;width:100%;margin-top:16px}
 .btn-secondary{background:#eef0eb;color:#263329;flex:1}
 .btn-danger{background:#fff0ee;color:#9d3027;padding:8px 12px;font-size:14px}
+.btn-edit{background:#eaf1fb;color:#2b4a8b;padding:8px 12px;font-size:14px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .row>*{min-width:0}
 .muted{color:#70766e;font-size:13px}
@@ -100,6 +101,36 @@ button{cursor:pointer;border:0;border-radius:12px;font-weight:600;font-size:16px
   </form>
 </section>
 
+  <section class="panel" id="editPanel" style="display:none">
+  <strong style="display:block;margin-bottom:6px">Редактировать запись</strong>
+  <form id="editForm">
+    <input type="hidden" id="editId">
+    <label for="editDate">Дата</label>
+    <input id="editDate" type="date" required>
+
+    <label for="editKind">Тип записи</label>
+    <select id="editKind">
+      <option value="expense">Расход</option>
+      <option value="income">Доход</option>
+      <option value="saving">В подушку безопасности</option>
+    </select>
+
+    <label for="editCategory">Категория</label>
+    <select id="editCategory"></select>
+
+    <label for="editAmount">Сумма, ₽</label>
+    <input id="editAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+
+    <label for="editNote">Комментарий (необязательно)</label>
+    <input id="editNote" type="text" maxlength="90">
+
+    <div class="actions">
+      <button class="btn-primary" type="submit">Сохранить изменения</button>
+      <button class="btn-secondary" type="button" id="editCancel">Отмена</button>
+    </div>
+  </form>
+</section>
+
 <section class="panel">
   <div class="row"><strong>Записи за выбранный месяц</strong><span class="muted" id="count">0 записей</span></div>
   <div id="entries"><div class="empty">Пока записей нет.</div></div>
@@ -113,8 +144,8 @@ button{cursor:pointer;border:0;border-radius:12px;font-weight:600;font-size:16px
   <p class="muted">Записи хранятся на устройстве и дублируются в Google Таблицу «Финансы». Отчёт строится скриптом make_expenses.py.</p>
 </section>
 
-<p class="version">версия 0.5.8 — GitHub Pages</p>
+<p class="version">версия 0.5.9 — GitHub Pages</p>
 
-<script src="app.js?v=0.5.8"></script>
+<script src="app.js?v=0.5.9"></script>
 </body>
 </html>
